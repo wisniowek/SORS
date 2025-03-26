@@ -4,42 +4,90 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prosta wyszukiwarka SOR</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
   <!-- Awesomplete CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.css" integrity="sha512-i6h0m8YcN9g4d7pyBtt/WllHLkOJnw07GyqgkKrA3xkNVbg4IE1UuRhB5pOKRPOegknu6rkyl9oJbIGmBqMt6A==" crossorigin="anonymous" />
   <style>
+    /* Globalne ustawienia ciemnego motywu */
     body {
-      font-family: sans-serif;
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
       margin: 20px;
       max-width: 800px;
+      line-height: 1.6;
+    }
+    h1, p {
+      text-align: center;
     }
     label {
       display: block;
-      margin-top: 10px;
-      font-weight: bold;
+      margin-top: 15px;
+      font-weight: 500;
     }
     input {
       width: 300px;
-      padding: 6px;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      border-color: #bb86fc;
+      outline: none;
     }
     button {
       margin-top: 20px;
-      padding: 8px 16px;
+      padding: 10px 20px;
       cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #bb86fc;
+      color: #121212;
+      font-weight: 500;
+      transition: background-color 0.3s, transform 0.2s;
     }
-    table {
-      border-collapse: collapse;
-      margin-top: 20px;
-      width: 100%;
+    button:hover {
+      background-color: #9b68ea;
+      transform: scale(1.02);
     }
-    table th, table td {
-      border: 1px solid #ccc;
-      padding: 6px;
-      text-align: left;
+    /* Styl dla kart wyników */
+    .result-card {
+      background-color: #1e1e1e;
+      margin: 15px 0;
+      padding: 15px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      transition: box-shadow 0.3s;
     }
-    #results {
-      margin-top: 20px;
+    .result-card:hover {
+      box-shadow: 0 4px 8px rgba(0,0,0,0.8);
     }
-    /* Styl responsywny dla urządzeń mobilnych */
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 500;
+    }
+    .summary-fields span {
+      margin-right: 15px;
+    }
+    .detail-row {
+      display: none;
+      padding-top: 10px;
+      border-top: 1px solid #333;
+      margin-top: 10px;
+    }
+    .detail-row p {
+      margin: 4px 0;
+      font-size: 0.9em;
+    }
+    /* Responsywność */
     @media (max-width: 600px) {
       body {
         margin: 10px;
@@ -50,9 +98,6 @@
       }
       button {
         width: 100%;
-      }
-      table, th, td {
-        font-size: 14px;
       }
     }
   </style>
@@ -106,6 +151,7 @@
         const nazwaData = await fetch(`${API_BASE}/distinct?col=nazwa`).then(res => res.json());
         const subData = await fetch(`${API_BASE}/distinct?col=Substancja_czynna`).then(res => res.json());
 
+        // Klucz backendu to "distinct_values"
         uprawaValues = uprawaData.distinct_values || [];
         agrofagValues = agrofagData.distinct_values || [];
         nazwaValues = nazwaData.distinct_values || [];
@@ -147,11 +193,11 @@
         wyswietlWyniki(json);
       } catch (err) {
         console.error("Błąd fetch:", err);
-        document.getElementById("results").innerHTML = `<p style="color:red;">Błąd podczas wyszukiwania</p>`;
+        document.getElementById("results").innerHTML = `<p style="color:#cf6679;">Błąd podczas wyszukiwania</p>`;
       }
     }
 
-    // Funkcja wyświetlająca wyniki
+    // Funkcja wyświetlająca wyniki jako karty z możliwością rozwijania szczegółów
     function wyswietlWyniki(data) {
       const resultsDiv = document.getElementById("results");
       resultsDiv.innerHTML = "";
@@ -161,37 +207,62 @@
         return;
       }
 
-      const table = document.createElement("table");
-      const thead = document.createElement("thead");
-      const tbody = document.createElement("tbody");
-
-      const cols = Object.keys(data.results[0]);
-      const trHead = document.createElement("tr");
-      cols.forEach(col => {
-        const th = document.createElement("th");
-        th.textContent = col;
-        trHead.appendChild(th);
-      });
-      thead.appendChild(trHead);
-
       data.results.forEach(rec => {
-        const tr = document.createElement("tr");
-        cols.forEach(col => {
-          const td = document.createElement("td");
-          td.textContent = rec[col] || "";
-          tr.appendChild(td);
+        // Karta wyniku
+        const card = document.createElement("div");
+        card.classList.add("result-card");
+
+        // Wiersz podsumowania (główne pola)
+        const summaryDiv = document.createElement("div");
+        summaryDiv.classList.add("summary-row");
+
+        const summaryFieldsDiv = document.createElement("div");
+        summaryFieldsDiv.classList.add("summary-fields");
+
+        // Wyświetlamy główne pola: "Nazwa", "Rodzaj", "Agrofag", "Uprawa"
+        const fields = ["Nazwa", "Rodzaj", "Agrofag", "Uprawa"];
+        fields.forEach(field => {
+          const span = document.createElement("span");
+          span.textContent = rec[field] || "";
+          summaryFieldsDiv.appendChild(span);
         });
-        tbody.appendChild(tr);
+
+        summaryDiv.appendChild(summaryFieldsDiv);
+
+        // Przycisk rozwijania szczegółów
+        const toggleButton = document.createElement("button");
+        toggleButton.textContent = "+";
+        toggleButton.style.padding = "4px 8px";
+        toggleButton.style.cursor = "pointer";
+        summaryDiv.appendChild(toggleButton);
+
+        card.appendChild(summaryDiv);
+
+        // Sekcja szczegółów – pozostałe pola (pomijamy te wyświetlane w podsumowaniu)
+        const detailDiv = document.createElement("div");
+        detailDiv.classList.add("detail-row");
+        for (const key in rec) {
+          if (fields.indexOf(key) === -1) {
+            const p = document.createElement("p");
+            p.textContent = `${key}: ${rec[key]}`;
+            detailDiv.appendChild(p);
+          }
+        }
+        card.appendChild(detailDiv);
+
+        // Obsługa przycisku rozwijania
+        toggleButton.addEventListener("click", () => {
+          if (detailDiv.style.display === "none" || detailDiv.style.display === "") {
+            detailDiv.style.display = "block";
+            toggleButton.textContent = "-";
+          } else {
+            detailDiv.style.display = "none";
+            toggleButton.textContent = "+";
+          }
+        });
+
+        resultsDiv.appendChild(card);
       });
-
-      table.appendChild(thead);
-      table.appendChild(tbody);
-
-      const infoP = document.createElement("p");
-      infoP.textContent = `Znaleziono rekordów: ${data.count}`;
-
-      resultsDiv.appendChild(infoP);
-      resultsDiv.appendChild(table);
     }
   </script>
 </body>
