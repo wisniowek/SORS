@@ -9,7 +9,32 @@
   <!-- Awesomplete CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.css" integrity="sha512-i6h0m8YcN9g4d7pyBtt/WllHLkOJnw07GyqgkKrA3xkNVbg4IE1UuRhB5pOKRPOegknu6rkyl9oJbIGmBqMt6A==" crossorigin="anonymous" />
   <style>
-    /* Globalne ustawienia ciemnego motywu */
+    /* Tło – animacja dwóch gifów (podmień URL-e na swoje) */
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: -2;
+      opacity: 0;
+      animation: bgFade 30s infinite;
+    }
+    body::before {
+      background-image: url('https://example.com/apple_orchard.gif'); /* gif sadownika opryskującego sad jabłkowy */
+      animation-delay: 0s;
+    }
+    body::after {
+      background-image: url('https://example.com/grain_field.gif'); /* gif oprysku wielkich połaci zboża */
+      animation-delay: 15s;
+    }
+    @keyframes bgFade {
+      0%, 40% { opacity: 1; }
+      50%, 90% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    /* Globalny ciemny motyw */
     body {
       font-family: 'Roboto', sans-serif;
       background-color: #121212;
@@ -17,6 +42,7 @@
       margin: 20px;
       max-width: 800px;
       line-height: 1.6;
+      position: relative;
     }
     h1, p {
       text-align: center;
@@ -55,7 +81,7 @@
       background-color: #9b68ea;
       transform: scale(1.02);
     }
-    /* Styl dla kart wyników */
+    /* Style dla pól wyników – karty */
     .result-card {
       background-color: #1e1e1e;
       margin: 15px 0;
@@ -70,12 +96,22 @@
     }
     .summary-row {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       font-weight: 500;
+      gap: 10px;
     }
-    .summary-fields span {
-      margin-right: 15px;
+    .summary-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      flex-grow: 1;
+    }
+    .summary-fields div {
+      background: rgba(187, 134, 252, 0.2);
+      padding: 5px 10px;
+      border-radius: 4px;
     }
     .detail-row {
       display: none;
@@ -104,9 +140,9 @@
 </head>
 <body>
   <h1>Prosta wyszukiwarka SOR</h1>
-  <p>Wpisz fragment w jednym lub kilku polach. Podpowiedzi będą wyświetlane dzięki Awesomplete. Pole możesz też zostawić puste.</p>
+  <p>Wpisz fragment w jednym lub kilku polach. Autouzupełnianie działa dzięki Awesomplete.</p>
 
-  <!-- Pola wyszukiwania z autouzupełnianiem Awesomplete -->
+  <!-- Pola wyszukiwania – autouzupełnianie Awesomplete -->
   <label for="uprawaInput">Uprawa:</label>
   <input type="text" id="uprawaInput" placeholder="np. ziemniak" />
 
@@ -130,7 +166,7 @@
     // USTAW: Adres Twojego API (bez slash na końcu)
     const API_BASE = "https://sor.onrender.com";
 
-    // Przechowywane wartości dla autouzupełniania
+    // Przechowywane wartości do autouzupełniania
     let uprawaValues = [];
     let agrofagValues = [];
     let nazwaValues = [];
@@ -139,7 +175,7 @@
     // Instancje Awesomplete
     let awesompleteUprawa, awesompleteAgrofag, awesompleteNazwa, awesompleteSub;
 
-    // Przy starcie strony pobierz dane do autouzupełniania
+    // Po załadowaniu strony pobieramy dane autouzupełniania
     window.addEventListener('DOMContentLoaded', async () => {
       await initDatalists();
     });
@@ -151,7 +187,7 @@
         const nazwaData = await fetch(`${API_BASE}/distinct?col=nazwa`).then(res => res.json());
         const subData = await fetch(`${API_BASE}/distinct?col=Substancja_czynna`).then(res => res.json());
 
-        // Klucz backendu to "distinct_values"
+        // Spodziewamy się klucza "distinct_values" z backendu
         uprawaValues = uprawaData.distinct_values || [];
         agrofagValues = agrofagData.distinct_values || [];
         nazwaValues = nazwaData.distinct_values || [];
@@ -168,7 +204,7 @@
       }
     }
 
-    // Funkcja wyszukująca
+    // Funkcja wyszukująca – buduje zapytanie do API
     async function wyszukaj() {
       const uprawa = document.getElementById("uprawaInput").value.trim();
       const agrofag = document.getElementById("agrofagInput").value.trim();
@@ -197,7 +233,8 @@
       }
     }
 
-    // Funkcja wyświetlająca wyniki jako karty z możliwością rozwijania szczegółów
+    // Funkcja wyświetlająca wyniki jako karty – główne pola są oddzielone graficznie,
+    // a dodatkowe dane rozwijane po kliknięciu przycisku "+"
     function wyswietlWyniki(data) {
       const resultsDiv = document.getElementById("results");
       resultsDiv.innerHTML = "";
@@ -212,19 +249,19 @@
         const card = document.createElement("div");
         card.classList.add("result-card");
 
-        // Wiersz podsumowania (główne pola)
+        // Wiersz podsumowania z głównymi polami
         const summaryDiv = document.createElement("div");
         summaryDiv.classList.add("summary-row");
 
         const summaryFieldsDiv = document.createElement("div");
         summaryFieldsDiv.classList.add("summary-fields");
 
-        // Wyświetlamy główne pola: "Nazwa", "Rodzaj", "Agrofag", "Uprawa"
+        // Główne pola: "Nazwa", "Rodzaj", "Agrofag", "Uprawa"
         const fields = ["Nazwa", "Rodzaj", "Agrofag", "Uprawa"];
         fields.forEach(field => {
-          const span = document.createElement("span");
-          span.textContent = rec[field] || "";
-          summaryFieldsDiv.appendChild(span);
+          const fieldDiv = document.createElement("div");
+          fieldDiv.textContent = rec[field] || "";
+          summaryFieldsDiv.appendChild(fieldDiv);
         });
 
         summaryDiv.appendChild(summaryFieldsDiv);
@@ -238,7 +275,7 @@
 
         card.appendChild(summaryDiv);
 
-        // Sekcja szczegółów – pozostałe pola (pomijamy te wyświetlane w podsumowaniu)
+        // Sekcja szczegółów – pozostałe pola (pomijamy te z listy 'fields')
         const detailDiv = document.createElement("div");
         detailDiv.classList.add("detail-row");
         for (const key in rec) {
@@ -250,7 +287,7 @@
         }
         card.appendChild(detailDiv);
 
-        // Obsługa przycisku rozwijania
+        // Obsługa rozwijania/zwijania szczegółów
         toggleButton.addEventListener("click", () => {
           if (detailDiv.style.display === "none" || detailDiv.style.display === "") {
             detailDiv.style.display = "block";
