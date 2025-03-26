@@ -9,7 +9,7 @@
   <!-- Awesomplete CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.css" integrity="sha512-i6h0m8YcN9g4d7pyBtt/WllHLkOJnw07GyqgkKrA3xkNVbg4IE1UuRhB5pOKRPOegknu6rkyl9oJbIGmBqMt6A==" crossorigin="anonymous" />
   <style>
-    /* Tło – animacja dwóch gifów (podmień URL-e na swoje) */
+    /* Animowane tło – podmień URL-e na swoje */
     body::before, body::after {
       content: "";
       position: fixed;
@@ -21,11 +21,11 @@
       animation: bgFade 30s infinite;
     }
     body::before {
-      background-image: url('https://example.com/apple_orchard.gif'); /* gif sadownika opryskującego sad jabłkowy */
+      background-image: url('https://example.com/apple_orchard.gif'); /* filmik sadownika opryskującego sad jabłkowy */
       animation-delay: 0s;
     }
     body::after {
-      background-image: url('https://example.com/grain_field.gif'); /* gif oprysku wielkich połaci zboża */
+      background-image: url('https://example.com/grain_field.gif'); /* filmik oprysku wielkich połaci zboża */
       animation-delay: 15s;
     }
     @keyframes bgFade {
@@ -81,7 +81,7 @@
       background-color: #9b68ea;
       transform: scale(1.02);
     }
-    /* Style dla pól wyników – karty */
+    /* Style kart wyników */
     .result-card {
       background-color: #1e1e1e;
       margin: 15px 0;
@@ -113,11 +113,16 @@
       padding: 5px 10px;
       border-radius: 4px;
     }
+    /* Sekcja szczegółów – używamy max-height do płynnego rozwijania */
     .detail-row {
-      display: none;
-      padding-top: 10px;
-      border-top: 1px solid #333;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
       margin-top: 10px;
+      border-top: 1px solid #333;
+    }
+    .detail-row.open {
+      max-height: 500px; /* dopasuj w razie potrzeby */
     }
     .detail-row p {
       margin: 4px 0;
@@ -142,7 +147,7 @@
   <h1>Prosta wyszukiwarka SOR</h1>
   <p>Wpisz fragment w jednym lub kilku polach. Autouzupełnianie działa dzięki Awesomplete.</p>
 
-  <!-- Pola wyszukiwania – autouzupełnianie Awesomplete -->
+  <!-- Pola wyszukiwania -->
   <label for="uprawaInput">Uprawa:</label>
   <input type="text" id="uprawaInput" placeholder="np. ziemniak" />
 
@@ -175,9 +180,21 @@
     // Instancje Awesomplete
     let awesompleteUprawa, awesompleteAgrofag, awesompleteNazwa, awesompleteSub;
 
-    // Po załadowaniu strony pobieramy dane autouzupełniania
     window.addEventListener('DOMContentLoaded', async () => {
       await initDatalists();
+      // Na inputie aktualizujemy listę sugestii
+      document.getElementById("uprawaInput").addEventListener("input", function(){
+        awesompleteUprawa.list = uprawaValues;
+      });
+      document.getElementById("agrofagInput").addEventListener("input", function(){
+        awesompleteAgrofag.list = agrofagValues;
+      });
+      document.getElementById("nazwaInput").addEventListener("input", function(){
+        awesompleteNazwa.list = nazwaValues;
+      });
+      document.getElementById("subInput").addEventListener("input", function(){
+        awesompleteSub.list = subValues;
+      });
     });
 
     async function initDatalists() {
@@ -187,24 +204,23 @@
         const nazwaData = await fetch(`${API_BASE}/distinct?col=nazwa`).then(res => res.json());
         const subData = await fetch(`${API_BASE}/distinct?col=Substancja_czynna`).then(res => res.json());
 
-        // Spodziewamy się klucza "distinct_values" z backendu
+        // Oczekujemy klucza "distinct_values" z backendu
         uprawaValues = uprawaData.distinct_values || [];
         agrofagValues = agrofagData.distinct_values || [];
         nazwaValues = nazwaData.distinct_values || [];
         subValues = subData.distinct_values || [];
 
         // Inicjalizacja Awesomplete dla każdego pola
-        awesompleteUprawa = new Awesomplete(document.getElementById("uprawaInput"), { list: uprawaValues });
-        awesompleteAgrofag = new Awesomplete(document.getElementById("agrofagInput"), { list: agrofagValues });
-        awesompleteNazwa = new Awesomplete(document.getElementById("nazwaInput"), { list: nazwaValues });
-        awesompleteSub = new Awesomplete(document.getElementById("subInput"), { list: subValues });
+        awesompleteUprawa = new Awesomplete(document.getElementById("uprawaInput"), { list: uprawaValues, minChars: 1 });
+        awesompleteAgrofag = new Awesomplete(document.getElementById("agrofagInput"), { list: agrofagValues, minChars: 1 });
+        awesompleteNazwa = new Awesomplete(document.getElementById("nazwaInput"), { list: nazwaValues, minChars: 1 });
+        awesompleteSub = new Awesomplete(document.getElementById("subInput"), { list: subValues, minChars: 1 });
 
       } catch (err) {
         console.error("Błąd initDatalists:", err);
       }
     }
 
-    // Funkcja wyszukująca – buduje zapytanie do API
     async function wyszukaj() {
       const uprawa = document.getElementById("uprawaInput").value.trim();
       const agrofag = document.getElementById("agrofagInput").value.trim();
@@ -233,8 +249,6 @@
       }
     }
 
-    // Funkcja wyświetlająca wyniki jako karty – główne pola są oddzielone graficznie,
-    // a dodatkowe dane rozwijane po kliknięciu przycisku "+"
     function wyswietlWyniki(data) {
       const resultsDiv = document.getElementById("results");
       resultsDiv.innerHTML = "";
@@ -245,7 +259,7 @@
       }
 
       data.results.forEach(rec => {
-        // Karta wyniku
+        // Tworzymy kartę wyniku
         const card = document.createElement("div");
         card.classList.add("result-card");
 
@@ -275,7 +289,7 @@
 
         card.appendChild(summaryDiv);
 
-        // Sekcja szczegółów – pozostałe pola (pomijamy te z listy 'fields')
+        // Sekcja szczegółów – pozostałe pola
         const detailDiv = document.createElement("div");
         detailDiv.classList.add("detail-row");
         for (const key in rec) {
@@ -287,14 +301,14 @@
         }
         card.appendChild(detailDiv);
 
-        // Obsługa rozwijania/zwijania szczegółów
+        // Obsługa rozwijania/zwijania z animacją
         toggleButton.addEventListener("click", () => {
-          if (detailDiv.style.display === "none" || detailDiv.style.display === "") {
-            detailDiv.style.display = "block";
-            toggleButton.textContent = "-";
-          } else {
-            detailDiv.style.display = "none";
+          if (detailDiv.classList.contains("open")) {
+            detailDiv.classList.remove("open");
             toggleButton.textContent = "+";
+          } else {
+            detailDiv.classList.add("open");
+            toggleButton.textContent = "-";
           }
         });
 
