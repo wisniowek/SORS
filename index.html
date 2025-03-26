@@ -2,9 +2,10 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prosta wyszukiwarka SOR</title>
 
-  <!-- Prosty styl, żeby nieco upiększyć -->
+  <!-- Styl podstawowy oraz responsywny -->
   <style>
     body {
       font-family: sans-serif;
@@ -38,6 +39,22 @@
     #results {
       margin-top: 20px;
     }
+    /* Ulepszenia dla urządzeń mobilnych */
+    @media (max-width: 600px) {
+      body {
+        margin: 10px;
+      }
+      input[list] {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+      }
+      table, th, td {
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 
@@ -66,7 +83,7 @@
   <input type="text" id="subInput" list="subList" oninput="filterDatalist('sub')" placeholder="np. acetamipryd" />
   <datalist id="subList"></datalist>
 
-  <!-- Przycisk -->
+  <!-- Przycisk wyszukiwania -->
   <button onclick="wyszukaj()">Wyszukaj</button>
 
   <div id="results"></div>
@@ -81,25 +98,25 @@
     let nazwaValues = [];
     let subValues = [];
 
-    // 1. Przy starcie strony pobierz distincty
+    // Przy starcie strony pobierz distincty
     window.addEventListener('DOMContentLoaded', async () => {
       await initDatalists();
     });
 
     async function initDatalists() {
       try {
-        // Zakładamy, że istnieją endpointy: /distinct?col=uprawa itp.
+        // Zakładamy, że endpointy API zwracają klucz "distinct_values"
         const uprawaData = await fetch(`${API_BASE}/distinct?col=uprawa`).then(res => res.json());
         const agrofagData = await fetch(`${API_BASE}/distinct?col=agrofag`).then(res => res.json());
         const nazwaData = await fetch(`${API_BASE}/distinct?col=nazwa`).then(res => res.json());
         const subData = await fetch(`${API_BASE}/distinct?col=Substancja_czynna`).then(res => res.json());
 
-        uprawaValues = uprawaData.values || [];
-        agrofagValues = agrofagData.values || [];
-        nazwaValues = nazwaData.values || [];
-        subValues = subData.values || [];
+        uprawaValues = uprawaData.distinct_values || [];
+        agrofagValues = agrofagData.distinct_values || [];
+        nazwaValues = nazwaData.distinct_values || [];
+        subValues = subData.distinct_values || [];
 
-        // Na początek wypełniamy listy w <datalist> bez filtrowania
+        // Na początek wypełniamy listy bez filtrowania
         fillDatalist('uprawaList', uprawaValues);
         fillDatalist('agrofagList', agrofagValues);
         fillDatalist('nazwaList', nazwaValues);
@@ -110,11 +127,11 @@
       }
     }
 
-    // Funkcja wypełnia <datalist> danymi
+    // Funkcja wypełniająca <datalist> danymi
     function fillDatalist(datalistId, arr) {
       const datalistEl = document.getElementById(datalistId);
       if (!datalistEl) return;
-      datalistEl.innerHTML = ""; // wyczyszczenie
+      datalistEl.innerHTML = ""; // Wyczyszczenie
       arr.forEach(val => {
         const opt = document.createElement("option");
         opt.value = val;
@@ -122,8 +139,7 @@
       });
     }
 
-    // Podczas wpisywania w input – filtruj wartości (client side)
-    // i zapełniaj <datalist>
+    // Filtruj dane podczas wpisywania i aktualizuj <datalist>
     function filterDatalist(field) {
       let inputValue = "";
       let sourceArr = [];
@@ -154,14 +170,13 @@
 
     // Funkcja wyszukująca
     async function wyszukaj() {
-      // Pobierz wartości
+      // Pobierz wartości z inputów
       const uprawa = document.getElementById("uprawaInput").value.trim();
       const agrofag = document.getElementById("agrofagInput").value.trim();
       const nazwa = document.getElementById("nazwaInput").value.trim();
       const sub = document.getElementById("subInput").value.trim();
 
-      // Zbuduj query string do /search-all
-      // TYLKO jeśli user coś wpisał
+      // Budujemy query string do /search-all tylko dla pól, które zawierają wartość
       let qs = [];
       if (uprawa) qs.push(`uprawa=${encodeURIComponent(uprawa)}`);
       if (agrofag) qs.push(`agrofag=${encodeURIComponent(agrofag)}`);
@@ -173,7 +188,6 @@
         url += "?" + qs.join("&");
       }
 
-      // Wyślij żądanie
       console.log("Wywołuję:", url);
       try {
         const response = await fetch(url);
@@ -185,32 +199,32 @@
       }
     }
 
-    // Funkcja wyświetlająca wyniki w tabeli
+    // Funkcja wyświetlająca wyniki w formie tabeli
     function wyswietlWyniki(data) {
       const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = ""; // wyczyszczenie
+      resultsDiv.innerHTML = ""; // Wyczyść poprzednie wyniki
 
       if (!data.results || data.results.length === 0) {
         resultsDiv.innerHTML = `<p>Brak wyników (0)</p>`;
         return;
       }
 
-      // Tworzymy tabelę
+      // Tworzymy tabelę wyników
       const table = document.createElement("table");
       const thead = document.createElement("thead");
       const tbody = document.createElement("tbody");
 
-      // Nagłówki z kluczy pierwszego rekordu
-      const cols = Object.keys(data.results[0]); // np. ["Nazwa", "Numer zezwolenia", ...]
+      // Nagłówki pobierane z kluczy pierwszego rekordu
+      const cols = Object.keys(data.results[0]);
       const trHead = document.createElement("tr");
       cols.forEach(col => {
         const th = document.createElement("th");
-        th.textContent = col; // np. "Nazwa"
+        th.textContent = col;
         trHead.appendChild(th);
       });
       thead.appendChild(trHead);
 
-      // Wiersze
+      // Wiersze tabeli
       data.results.forEach(rec => {
         const tr = document.createElement("tr");
         cols.forEach(col => {
@@ -224,7 +238,7 @@
       table.appendChild(thead);
       table.appendChild(tbody);
 
-      // info o liczbie
+      // Informacja o liczbie rekordów
       const infoP = document.createElement("p");
       infoP.textContent = `Znaleziono rekordów: ${data.count}`;
 
