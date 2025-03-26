@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prosta wyszukiwarka SOR</title>
-
-  <!-- Styl podstawowy oraz responsywny -->
+  <!-- Awesomplete CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.css" integrity="sha512-i6h0m8YcN9g4d7pyBtt/WllHLkOJnw07GyqgkKrA3xkNVbg4IE1UuRhB5pOKRPOegknu6rkyl9oJbIGmBqMt6A==" crossorigin="anonymous" />
   <style>
     body {
       font-family: sans-serif;
@@ -17,7 +17,7 @@
       margin-top: 10px;
       font-weight: bold;
     }
-    input[list] {
+    input {
       width: 300px;
       padding: 6px;
     }
@@ -39,12 +39,12 @@
     #results {
       margin-top: 20px;
     }
-    /* Ulepszenia dla urządzeń mobilnych */
+    /* Styl responsywny dla urządzeń mobilnych */
     @media (max-width: 600px) {
       body {
         margin: 10px;
       }
-      input[list] {
+      input {
         width: 100%;
         box-sizing: border-box;
       }
@@ -57,55 +57,50 @@
     }
   </style>
 </head>
-
 <body>
   <h1>Prosta wyszukiwarka SOR</h1>
+  <p>Wpisz fragment w jednym lub kilku polach. Podpowiedzi będą wyświetlane dzięki Awesomplete. Pole możesz też zostawić puste.</p>
 
-  <p>Wpisz fragment w jednym lub kilku polach. Podczas wpisywania dostaniesz podpowiedzi (datalist). Pole możesz też zostawić puste.</p>
-
-  <!-- Pole: Uprawa -->
+  <!-- Pola wyszukiwania z autouzupełnianiem Awesomplete -->
   <label for="uprawaInput">Uprawa:</label>
-  <input type="text" id="uprawaInput" list="uprawaList" oninput="filterDatalist('uprawa')" placeholder="np. ziemniak" />
-  <datalist id="uprawaList"></datalist>
+  <input type="text" id="uprawaInput" placeholder="np. ziemniak" />
 
-  <!-- Pole: Agrofag -->
   <label for="agrofagInput">Agrofag:</label>
-  <input type="text" id="agrofagInput" list="agrofagList" oninput="filterDatalist('agrofag')" placeholder="np. stonka ziemniaczana" />
-  <datalist id="agrofagList"></datalist>
+  <input type="text" id="agrofagInput" placeholder="np. stonka ziemniaczana" />
 
-  <!-- Pole: Nazwa -->
   <label for="nazwaInput">Nazwa środka:</label>
-  <input type="text" id="nazwaInput" list="nazwaList" oninput="filterDatalist('nazwa')" placeholder="np. Aceplan" />
-  <datalist id="nazwaList"></datalist>
+  <input type="text" id="nazwaInput" placeholder="np. Aceplan" />
 
-  <!-- Pole: Substancja czynna -->
   <label for="subInput">Substancja czynna:</label>
-  <input type="text" id="subInput" list="subList" oninput="filterDatalist('sub')" placeholder="np. acetamipryd" />
-  <datalist id="subList"></datalist>
+  <input type="text" id="subInput" placeholder="np. acetamipryd" />
 
   <!-- Przycisk wyszukiwania -->
   <button onclick="wyszukaj()">Wyszukaj</button>
 
   <div id="results"></div>
 
+  <!-- Awesomplete JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js" integrity="sha512-bR4VTrnk/7k1QEQC8oOyEyS7ayRhaEqvC9z3L8lAK1kGOnfJzn2K5i9QbMZ/3CE4rNWOS7uP8vF6CZTkI2c4GQ==" crossorigin="anonymous"></script>
   <script>
     // USTAW: Adres Twojego API (bez slash na końcu)
     const API_BASE = "https://sor.onrender.com";
 
-    // Przechowujemy listy do autouzupełniania
+    // Przechowywane wartości dla autouzupełniania
     let uprawaValues = [];
     let agrofagValues = [];
     let nazwaValues = [];
     let subValues = [];
 
-    // Przy starcie strony pobierz distincty
+    // Instancje Awesomplete
+    let awesompleteUprawa, awesompleteAgrofag, awesompleteNazwa, awesompleteSub;
+
+    // Przy starcie strony pobierz dane do autouzupełniania
     window.addEventListener('DOMContentLoaded', async () => {
       await initDatalists();
     });
 
     async function initDatalists() {
       try {
-        // Zakładamy, że endpointy API zwracają klucz "distinct_values"
         const uprawaData = await fetch(`${API_BASE}/distinct?col=uprawa`).then(res => res.json());
         const agrofagData = await fetch(`${API_BASE}/distinct?col=agrofag`).then(res => res.json());
         const nazwaData = await fetch(`${API_BASE}/distinct?col=nazwa`).then(res => res.json());
@@ -116,67 +111,24 @@
         nazwaValues = nazwaData.distinct_values || [];
         subValues = subData.distinct_values || [];
 
-        // Na początek wypełniamy listy bez filtrowania
-        fillDatalist('uprawaList', uprawaValues);
-        fillDatalist('agrofagList', agrofagValues);
-        fillDatalist('nazwaList', nazwaValues);
-        fillDatalist('subList', subValues);
+        // Inicjalizacja Awesomplete dla każdego pola
+        awesompleteUprawa = new Awesomplete(document.getElementById("uprawaInput"), { list: uprawaValues });
+        awesompleteAgrofag = new Awesomplete(document.getElementById("agrofagInput"), { list: agrofagValues });
+        awesompleteNazwa = new Awesomplete(document.getElementById("nazwaInput"), { list: nazwaValues });
+        awesompleteSub = new Awesomplete(document.getElementById("subInput"), { list: subValues });
 
-      } catch(err) {
+      } catch (err) {
         console.error("Błąd initDatalists:", err);
       }
     }
 
-    // Funkcja wypełniająca <datalist> danymi
-    function fillDatalist(datalistId, arr) {
-      const datalistEl = document.getElementById(datalistId);
-      if (!datalistEl) return;
-      datalistEl.innerHTML = ""; // Wyczyszczenie
-      arr.forEach(val => {
-        const opt = document.createElement("option");
-        opt.value = val;
-        datalistEl.appendChild(opt);
-      });
-    }
-
-    // Filtruj dane podczas wpisywania i aktualizuj <datalist>
-    function filterDatalist(field) {
-      let inputValue = "";
-      let sourceArr = [];
-      let datalistId = "";
-
-      if (field === 'uprawa') {
-        inputValue = document.getElementById("uprawaInput").value.toLowerCase();
-        sourceArr = uprawaValues;
-        datalistId = "uprawaList";
-      } else if (field === 'agrofag') {
-        inputValue = document.getElementById("agrofagInput").value.toLowerCase();
-        sourceArr = agrofagValues;
-        datalistId = "agrofagList";
-      } else if (field === 'nazwa') {
-        inputValue = document.getElementById("nazwaInput").value.toLowerCase();
-        sourceArr = nazwaValues;
-        datalistId = "nazwaList";
-      } else if (field === 'sub') {
-        inputValue = document.getElementById("subInput").value.toLowerCase();
-        sourceArr = subValues;
-        datalistId = "subList";
-      }
-
-      // Filtruj tablicę
-      const filtered = sourceArr.filter(val => val.toLowerCase().includes(inputValue));
-      fillDatalist(datalistId, filtered);
-    }
-
     // Funkcja wyszukująca
     async function wyszukaj() {
-      // Pobierz wartości z inputów
       const uprawa = document.getElementById("uprawaInput").value.trim();
       const agrofag = document.getElementById("agrofagInput").value.trim();
       const nazwa = document.getElementById("nazwaInput").value.trim();
       const sub = document.getElementById("subInput").value.trim();
 
-      // Budujemy query string do /search-all tylko dla pól, które zawierają wartość
       let qs = [];
       if (uprawa) qs.push(`uprawa=${encodeURIComponent(uprawa)}`);
       if (agrofag) qs.push(`agrofag=${encodeURIComponent(agrofag)}`);
@@ -199,22 +151,20 @@
       }
     }
 
-    // Funkcja wyświetlająca wyniki w formie tabeli
+    // Funkcja wyświetlająca wyniki
     function wyswietlWyniki(data) {
       const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = ""; // Wyczyść poprzednie wyniki
+      resultsDiv.innerHTML = "";
 
       if (!data.results || data.results.length === 0) {
         resultsDiv.innerHTML = `<p>Brak wyników (0)</p>`;
         return;
       }
 
-      // Tworzymy tabelę wyników
       const table = document.createElement("table");
       const thead = document.createElement("thead");
       const tbody = document.createElement("tbody");
 
-      // Nagłówki pobierane z kluczy pierwszego rekordu
       const cols = Object.keys(data.results[0]);
       const trHead = document.createElement("tr");
       cols.forEach(col => {
@@ -224,7 +174,6 @@
       });
       thead.appendChild(trHead);
 
-      // Wiersze tabeli
       data.results.forEach(rec => {
         const tr = document.createElement("tr");
         cols.forEach(col => {
@@ -238,7 +187,6 @@
       table.appendChild(thead);
       table.appendChild(tbody);
 
-      // Informacja o liczbie rekordów
       const infoP = document.createElement("p");
       infoP.textContent = `Znaleziono rekordów: ${data.count}`;
 
