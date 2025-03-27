@@ -19,11 +19,11 @@
       animation: bgFade 30s infinite;
     }
     body::before {
-      background-image: url('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHY3bGhoZWt3NjNpNXZxdXVzYjN4ZWd6dGJ4YXVncTlqcG16MWRqcCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xUPGcHmsV0Hy5vb7wI/giphy.gif'); /* filmik sadownika opryskującego sad jabłkowy */
+      background-image: url('https://example.com/apple_orchard.gif'); /* filmik sadownika opryskującego sad jabłkowy */
       animation-delay: 0s;
     }
     body::after {
-      background-image: url('https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExb25jNnM4Zjg5NW03Z2c5a3NmN3FhcHh5MGEyaW95Zm01MnY1czQ5OSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/RNEzwBUvsPbE8ZSAKW/giphy.gif'); /* filmik oprysku wielkich połaci zboża */
+      background-image: url('https://example.com/grain_field.gif'); /* filmik oprysku wielkich połaci zboża */
       animation-delay: 15s;
     }
     @keyframes bgFade {
@@ -84,7 +84,7 @@
       background-color: #9b68ea;
       transform: scale(1.02);
     }
-    /* Kontenery dla autouzupełniania – własny dropdown */
+    /* Własny dropdown dla autouzupełniania */
     .autocomplete-suggestions {
       position: absolute;
       top: 100%;
@@ -134,6 +134,7 @@
       border-radius: 4px;
       padding: 4px 8px;
       cursor: pointer;
+      margin-top: 10px;
     }
     .result-card button:hover {
       background-color: #9b68ea;
@@ -145,6 +146,12 @@
     .detail-row p {
       margin: 4px 0;
       font-size: 0.9em;
+    }
+    .price-estimate {
+      margin-top: 10px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
     }
     /* Responsywność */
     @media (max-width: 600px) {
@@ -165,7 +172,7 @@
   <h1>Interaktywna wyszukiwarka SOR</h1>
   <p>Wpisz fragment w jednym lub kilku polach. Wybierz podpowiedź, kliknij wyszukaj – wyniki pojawią się poniżej jako interaktywne karty.</p>
 
-  <!-- Pola wyszukiwania -->
+  <!-- Pola wyszukiwania z własnym autocomplete -->
   <div class="input-container">
     <label for="uprawaInput">Uprawa:</label>
     <input type="text" id="uprawaInput" placeholder="np. ziemniak">
@@ -195,138 +202,4 @@
 
   <script>
     // USTAW: Adres Twojego API (bez końcowego slash)
-    const API_BASE = "https://sor.onrender.com";
-
-    // Globalne tablice z danymi do autouzupełniania
-    let uprawaValues = [];
-    let agrofagValues = [];
-    let nazwaValues = [];
-    let subValues = [];
-
-    // Po załadowaniu strony pobierz dane z API oraz zainicjuj autouzupełnianie
-    window.addEventListener('DOMContentLoaded', async () => {
-      await fetchDistinctValues();
-      setupAutocomplete(document.getElementById("uprawaInput"), document.getElementById("uprawaSuggestions"), uprawaValues);
-      setupAutocomplete(document.getElementById("agrofagInput"), document.getElementById("agrofagSuggestions"), agrofagValues);
-      setupAutocomplete(document.getElementById("nazwaInput"), document.getElementById("nazwaSuggestions"), nazwaValues);
-      setupAutocomplete(document.getElementById("subInput"), document.getElementById("subSuggestions"), subValues);
-    });
-
-    // Funkcja pobierająca dane distinct z API
-    async function fetchDistinctValues() {
-      try {
-        const up = await fetch(`${API_BASE}/distinct?col=uprawa`).then(res => res.json());
-        const ag = await fetch(`${API_BASE}/distinct?col=agrofag`).then(res => res.json());
-        const na = await fetch(`${API_BASE}/distinct?col=nazwa`).then(res => res.json());
-        const su = await fetch(`${API_BASE}/distinct?col=Substancja_czynna`).then(res => res.json());
-        uprawaValues = up.distinct_values || [];
-        agrofagValues = ag.distinct_values || [];
-        nazwaValues = na.distinct_values || [];
-        subValues = su.distinct_values || [];
-      } catch(e) {
-        console.error("Błąd pobierania danych distinct:", e);
-      }
-    }
-
-    // Funkcja do ustawienia autouzupełniania dla danego inputa
-    function setupAutocomplete(input, container, suggestions) {
-      input.addEventListener("input", function() {
-        const value = input.value.toLowerCase();
-        container.innerHTML = "";
-        if (!value) return;
-        const filtered = suggestions.filter(s => s.toLowerCase().includes(value));
-        filtered.forEach(s => {
-          const div = document.createElement("div");
-          div.classList.add("suggestion-item");
-          div.textContent = s;
-          div.addEventListener("mousedown", function(e) {
-            // Używamy mousedown, aby kliknięcie zadziałało przed zdarzeniem blur
-            input.value = s;
-            container.innerHTML = "";
-          });
-          container.appendChild(div);
-        });
-      });
-      // Ukryj podpowiedzi po utracie fokusu (z lekkim opóźnieniem)
-      input.addEventListener("blur", function() {
-        setTimeout(() => { container.innerHTML = ""; }, 150);
-      });
-    }
-
-    // Funkcja wyszukująca – buduje zapytanie do API i wyświetla wyniki
-    async function wyszukaj() {
-      const up = document.getElementById("uprawaInput").value.trim();
-      const ag = document.getElementById("agrofagInput").value.trim();
-      const na = document.getElementById("nazwaInput").value.trim();
-      const su = document.getElementById("subInput").value.trim();
-      let qs = [];
-      if (up) qs.push(`uprawa=${encodeURIComponent(up)}`);
-      if (ag) qs.push(`agrofag=${encodeURIComponent(ag)}`);
-      if (na) qs.push(`nazwa=${encodeURIComponent(na)}`);
-      if (su) qs.push(`Substancja_czynna=${encodeURIComponent(su)}`);
-      let url = `${API_BASE}/search-all`;
-      if (qs.length > 0) url += "?" + qs.join("&");
-      try {
-        const response = await fetch(url);
-        const json = await response.json();
-        displayResults(json);
-      } catch(e) {
-        document.getElementById("results").innerHTML = "<p>Błąd podczas wyszukiwania.</p>";
-      }
-    }
-
-    // Funkcja wyświetlająca wyniki jako interaktywne karty
-    function displayResults(data) {
-      const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = "";
-      if (!data.results || data.results.length === 0) {
-        resultsDiv.innerHTML = "<p>Brak wyników (0)</p>";
-        return;
-      }
-      data.results.forEach(rec => {
-        const card = document.createElement("div");
-        card.classList.add("result-card");
-
-        // Wiersz podsumowania z głównymi polami
-        const summary = document.createElement("div");
-        summary.classList.add("summary-row");
-        const primaryFields = ["Nazwa", "Rodzaj", "Agrofag", "Uprawa"];
-        primaryFields.forEach(field => {
-          const fieldDiv = document.createElement("div");
-          fieldDiv.classList.add("primary-field");
-          fieldDiv.textContent = rec[field] || "";
-          summary.appendChild(fieldDiv);
-        });
-        // Przycisk do rozwijania szczegółów
-        const toggleBtn = document.createElement("button");
-        toggleBtn.textContent = "+";
-        toggleBtn.addEventListener("click", () => {
-          if(detail.style.display === "none" || detail.style.display === "") {
-            detail.style.display = "block";
-            toggleBtn.textContent = "-";
-          } else {
-            detail.style.display = "none";
-            toggleBtn.textContent = "+";
-          }
-        });
-        summary.appendChild(toggleBtn);
-        card.appendChild(summary);
-
-        // Sekcja szczegółów – pozostałe dane
-        const detail = document.createElement("div");
-        detail.classList.add("detail-row");
-        detail.style.display = "none";
-        for (const key in rec) {
-          if (primaryFields.indexOf(key) === -1) {
-            const p = document.createElement("p");
-            p.textContent = `${key}: ${rec[key]}`;
-            detail.appendChild(p);
-          }
-        }
-        card.appendChild(detail);
-        resultsDiv.appendChild(card);
-      });
-    }
-  </script>
-</body>
-</html>
+    const API_BASE = "https://sor.on
