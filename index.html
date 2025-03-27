@@ -6,42 +6,27 @@
 <title>Interaktywna wyszukiwarka SOR</title>
 <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
 <style>
-body { font-family:'Roboto'; margin:20px; max-width:800px; transition:background .3s,color .3s; }
-body.dark { background:#121212; color:#e0e0e0; }
-body.light { background:#f5f5f5; color:#121212; }
+body { font-family:'Roboto'; background:#121212; color:#e0e0e0; margin:20px; max-width:800px }
 h1,p { text-align:center }
-.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.input-container { position:relative; margin-bottom:12px; }
-.input-container input {
-  width:100%; padding:8px; border:1px solid #333; border-radius:4px;
-  background:inherit; color:inherit;
-}
-.input-container label {
-  position:absolute; top:50%; left:12px; transform:translateY(-50%);
-  transition:.2s; pointer-events:none; color:#aaa;
-}
-.input-container input:focus + label,
-.input-container input:not(:placeholder-shown) + label {
-  top:0; font-size:.75em; color:#bb86fc;
-}
-.autocomplete-suggestions {
-  position:absolute; top:100%; left:0; right:0; background:#2e2e2e;
-  border:1px solid #333; max-height:200px; overflow:auto; z-index:10;
-}
-.suggestion-item { padding:8px; cursor:pointer; background:#3a3a3a; }
-.suggestion-item:hover { background:#4a4a4a; }
-button { padding:8px 16px; border:none; border-radius:4px; background:#bb86fc; cursor:pointer; }
-button:hover { background:#9b68ea; }
-.result-card { background:#1e1e1e; padding:15px; margin-bottom:15px; border-radius:6px; }
-.summary-row { display:flex; gap:10px; border-bottom:1px solid #333; padding-bottom:10px; }
-.primary-field { background:rgba(187,134,252,0.2); padding:5px 10px; border-radius:4px; }
-.detail-row { display:none; padding-top:10px; }
-.pagination { display:flex; justify-content:center; gap:8px; margin-top:16px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px }
+.input-container { position:relative }
+input { width:100%; padding:8px; border:1px solid #333; border-radius:4px; background:#1e1e1e; color:#e0e0e0 }
+label { position:absolute; left:12px; top:50%; transform:translateY(-50%); transition:.2s; pointer-events:none; color:#aaa }
+input:focus + label, input:not(:placeholder-shown) + label { top:0; font-size:.75em; color:#bb86fc }
+.autocomplete-suggestions { position:absolute; top:100%; left:0; right:0; background:#2e2e2e; border:1px solid #333; max-height:200px; overflow:auto; z-index:10 }
+.suggestion-item { padding:8px; cursor:pointer; background:#3a3a3a }
+.suggestion-item:hover { background:#4a4a4a }
+button { padding:8px 16px; border:none; border-radius:4px; background:#bb86fc; cursor:pointer }
+button:hover { background:#9b68ea }
+.result-card { background:#1e1e1e; padding:15px; margin-bottom:15px; border-radius:6px }
+.summary-row { display:flex; gap:10px; border-bottom:1px solid #333; padding-bottom:10px }
+.primary-field { background:rgba(187,134,252,0.2); padding:5px 10px; border-radius:4px }
+.detail-row { display:none; padding-top:10px }
+.pagination { display:flex; justify-content:center; gap:8px; margin-top:16px }
 @media(max-width:600px){ .form-grid { grid-template-columns:1fr } }
 </style>
 </head>
-<body class="dark">
-<button onclick="toggleTheme()">Toggle theme</button>
+<body>
 <h1>Interaktywna wyszukiwarka SOR</h1>
 <p>Wpisz fragment i kliknij “Wyszukaj”.</p>
 
@@ -57,46 +42,55 @@ button:hover { background:#9b68ea; }
 <div id="pagination" class="pagination"></div>
 
 <script>
-const API="https://sor.onrender.com", PAGE=20;
-let results=[], page=1;
-const cols={uprawaInput:"uprawa",agrofagInput:"agrofag",nazwaInput:"nazwa",subInput:"Substancja_czynna"};
+const API="https://sor.onrender.com", PAGE_SIZE=20;
+let allResults=[], currentPage=1;
 
-function debounce(f,d=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),d)};}
-function toggleTheme(){ document.body.classList.toggle("light"); document.body.classList.toggle("dark"); localStorage.theme=document.body.className; }
-window.onload=()=>{ if(localStorage.theme) document.body.className=localStorage.theme; initAutocomplete(); }
+function debounce(fn,delay=200){let t;return(...args)=>{clearTimeout(t);t=setTimeout(()=>fn(...args),delay)}}
 
 async function initAutocomplete(){
-  for(let id in cols){
+  const map={uprawaInput:"uprawa",agrofagInput:"agrofag",nazwaInput:"nazwa",subInput:"Substancja_czynna"};
+  for(const id in map){
     const inp=document.getElementById(id), cont=document.getElementById(id.replace("Input","")+"Suggestions");
-    const vals=(await (await fetch(`${API}/distinct?col=${cols[id]}`)).json()).distinct_values;
+    const vals=(await (await fetch(`${API}/distinct?col=${map[id]}`)).json()).distinct_values;
     inp.addEventListener("input", debounce(()=>{
       cont.innerHTML=""; const q=inp.value.toLowerCase();
       vals.filter(v=>v.toLowerCase().includes(q)).sort((a,b)=>a.length-b.length).slice(0,10)
-        .forEach(v=>{const d=document.createElement("div");d.className="suggestion-item";d.textContent=v;d.onclick=()=>{inp.value=v;cont.innerHTML="";};cont.appendChild(d);});
+        .forEach(v=>{const d=document.createElement("div");d.className="suggestion-item";d.textContent=v;d.onclick=()=>{inp.value=v;cont.innerHTML=""};cont.appendChild(d)});
     }));
     inp.addEventListener("blur",()=>setTimeout(()=>cont.innerHTML="",150));
   }
 }
 
 document.getElementById("searchBtn").onclick=async()=>{
-  const qs=Object.entries(cols).map(([id,col])=>document.getElementById(id).value.trim()?`${col}=${encodeURIComponent(document.getElementById(id).value.trim())}`:null).filter(Boolean).join("&");
-  const data=(await (await fetch(`${API}/search-all${qs?"?"+qs:""}`)).json()).results||[];
-  results=data; page=1; render();
+  const params=["uprawa","agrofag","nazwa","Substancja_czynna"].map(col=>{
+    const v=document.getElementById(col+"Input").value.trim();
+    return v?`${col}=${encodeURIComponent(v)}`:null;
+  }).filter(Boolean).join("&");
+  const data=(await (await fetch(`${API}/search-all${params?"?"+params:""}`)).json()).results||[];
+  allResults=data; currentPage=1; renderPage();
 };
 
-function render(){
-  const start=(page-1)*PAGE, pageData=results.slice(start,start+PAGE);
-  document.getElementById("results").innerHTML=pageData.map(r=>`
+function renderPage(){
+  const start=(currentPage-1)*PAGE_SIZE, page=allResults.slice(start,start+PAGE_SIZE);
+  document.getElementById("results").innerHTML=page.map(r=>`
     <div class="result-card">
-      <div class="summary-row"><div class="primary-field">${r.Nazwa||""}</div><div class="primary-field">${r.Agrofag||""}</div><div class="primary-field">${r.Uprawa||""}</div><button onclick="toggleDetail(this)">+</button></div>
+      <div class="summary-row">
+        <div class="primary-field">${r.Nazwa||""}</div>
+        <div class="primary-field">${r.Agrofag||""}</div>
+        <div class="primary-field">${r.Uprawa||""}</div>
+        <button onclick="toggleDetails(this)">+</button>
+      </div>
       <div class="detail-row">${Object.entries(r).map(([k,v])=>`<p>${k}: ${v}</p>`).join("")}</div>
     </div>`).join("");
-  const pages=Math.ceil(results.length/PAGE);
-  document.getElementById("pagination").innerHTML=Array.from({length:pages},(_,i)=>`<button ${i+1===page?"disabled":""} onclick="goto(${i+1})">${i+1}</button>`).join("");
+  const pages=Math.ceil(allResults.length/PAGE_SIZE);
+  document.getElementById("pagination").innerHTML=Array.from({length:pages},(_,i)=>
+    `<button ${i+1===currentPage?"disabled":""} onclick="goto(${i+1})">${i+1}</button>`).join("");
 }
 
-function goto(n){ page=n; render(); }
-function toggleDetail(btn){ const d=btn.closest(".result-card").querySelector(".detail-row"); d.style.display=d.style.display==="block"?"":"block"; btn.textContent=d.style.display==="block"?"-":"+";}
+function goto(p){currentPage=p; renderPage();}
+function toggleDetails(btn){const d=btn.closest(".result-card").querySelector(".detail-row");d.style.display=d.style.display==="block"?"":"block";btn.textContent=d.style.display==="block"?"-":"+";}
+
+window.onload=initAutocomplete;
 </script>
 </body>
 </html>
