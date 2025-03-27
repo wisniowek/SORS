@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interaktywna wyszukiwarka SOR</title>
+  <title>KRUKOWSKI</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
   <style>
@@ -147,7 +147,7 @@
       margin: 4px 0;
       font-size: 0.9em;
     }
-    /* Styl dla przycisku "Oszacuj cenę" i pola z wynikiem */
+    /* Styl dla przycisku "Oszacuj cenę" oraz pola z wynikiem */
     .price-container {
       margin-top: 10px;
     }
@@ -294,6 +294,7 @@
       data.results.forEach(rec => {
         const card = document.createElement("div");
         card.classList.add("result-card");
+        
         // Wiersz podsumowania z głównymi polami
         const summary = document.createElement("div");
         summary.classList.add("summary-row");
@@ -318,6 +319,7 @@
         });
         summary.appendChild(toggleBtn);
         card.appendChild(summary);
+        
         // Sekcja szczegółów – pozostałe dane
         const detail = document.createElement("div");
         detail.classList.add("detail-row");
@@ -329,6 +331,7 @@
             detail.appendChild(p);
           }
         }
+        
         // Dodaj przycisk "Oszacuj cenę" oraz kontener na wynik
         const priceContainer = document.createElement("div");
         priceContainer.classList.add("price-container");
@@ -339,6 +342,7 @@
         priceContainer.appendChild(priceBtn);
         priceContainer.appendChild(priceResult);
         detail.appendChild(priceContainer);
+        
         // Obsługa przycisku "Oszacuj cenę" wykorzystująca OpenAI
         priceBtn.addEventListener("click", () => {
           const effectiveName = rec["Nazwa"] && rec["Nazwa"].trim() ? rec["Nazwa"] : "nieznany środek";
@@ -355,8 +359,12 @@
         resultDiv.textContent = "Nie znaleziono nazwy środka. Sprawdź dane.";
         return;
       }
-      const promptText = `Jaka jest cena środka "${nazwa}" na polskim internecie w różnych opakowaniach? Zwróć średnią dla danych opakowań z rynku polskiego. Jeżeli brak takich informacji, zwróć: skontaktuj się z lokalnym dystrybutorem SOR.`;
+      
+      // Prompt uwzględnia możliwość zwrócenia wielu wariantów opakowań
+      const promptText = `Jaka jest cena środka "${nazwa}" na polskim internecie? Dane dotyczące cen mogą być dostępne dla różnych opakowań (np. 1 kg, 5 kg, 1 l, 250 ml, itp.). Proszę zwróć wynik w formacie JSON z kluczem "opakowania", który zawiera tablicę obiektów, gdzie każdy obiekt ma klucze "typ" (opis opakowania) oraz "cena" (średnia cena brutto). Pomiń opcje, dla których brak jest danych.`;
+      
       resultDiv.textContent = "Oszacowywanie ceny...";
+      
       fetch(API_BASE + "/estimate-price", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -367,7 +375,21 @@
         return response.json();
       })
       .then(data => {
-        resultDiv.textContent = data.price_estimate;
+        try {
+          const priceData = JSON.parse(data.price_estimate);
+          if (!priceData.opakowania || !Array.isArray(priceData.opakowania)) {
+            throw new Error("Nieprawidłowy format odpowiedzi");
+          }
+          let html = "<ul>";
+          priceData.opakowania.forEach(item => {
+            html += `<li>${item.typ}: ${item.cena}</li>`;
+          });
+          html += "</ul>";
+          resultDiv.innerHTML = html;
+        } catch(e) {
+          console.error("Błąd parsowania JSON:", e);
+          resultDiv.textContent = data.price_estimate;
+        }
       })
       .catch(error => {
         console.error(error);
