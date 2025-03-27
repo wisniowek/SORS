@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KRUKOWSKI SOR</title>
+  <title>Interaktywna wyszukiwarka SOR</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
   <style>
@@ -339,9 +339,8 @@
         priceContainer.appendChild(priceBtn);
         priceContainer.appendChild(priceResult);
         detail.appendChild(priceContainer);
-        // Obsługa przycisku "Oszacuj cenę"
+        // Obsługa przycisku "Oszacuj cenę" wykorzystująca OpenAI
         priceBtn.addEventListener("click", () => {
-          // Upewnij się, że pobieramy właściwą nazwę z pola "Nazwa"
           const effectiveName = rec["Nazwa"] && rec["Nazwa"].trim() ? rec["Nazwa"] : "nieznany środek";
           oszacujCene(effectiveName, priceResult);
         });
@@ -350,24 +349,30 @@
       });
     }
 
-    // Funkcja symulująca wywołanie AI do oszacowania ceny
+    // Funkcja wykorzystująca endpoint /estimate-price do oszacowania ceny z OpenAI
     function oszacujCene(nazwa, resultDiv) {
       if (!nazwa || nazwa.trim() === "") {
         resultDiv.textContent = "Nie znaleziono nazwy środka. Sprawdź dane.";
         return;
       }
-      console.log("Oszacowywana nazwa:", nazwa);
       const promptText = `Jaka jest cena środka "${nazwa}" na polskim internecie w różnych opakowaniach? Zwróć średnią dla danych opakowań z rynku polskiego. Jeżeli brak takich informacji, zwróć: skontaktuj się z lokalnym dystrybutorem SOR.`;
-      console.log("Prompt dla AI:", promptText);
       resultDiv.textContent = "Oszacowywanie ceny...";
-      setTimeout(() => {
-        if (Math.random() > 0.5) {
-          let price = (Math.random() * 150 + 50).toFixed(2);
-          resultDiv.textContent = `Średnia cena: ${price} PLN`;
-        } else {
-          resultDiv.textContent = "Skontaktuj się z lokalnym dystrybutorem SOR";
-        }
-      }, 1500);
+      fetch(API_BASE + "/estimate-price", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: promptText })
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Błąd podczas oszacowywania ceny");
+        return response.json();
+      })
+      .then(data => {
+        resultDiv.textContent = data.price_estimate;
+      })
+      .catch(error => {
+        console.error(error);
+        resultDiv.textContent = "Błąd podczas oszacowywania ceny";
+      });
     }
   </script>
 </body>
