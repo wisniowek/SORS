@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interaktywna wyszukiwarka SOR</title>
+<link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
+<style>
+  /* Animowany placeholder */
+  @keyframes placeholderFade {0%,20%{opacity:1}30%,90%{opacity:0}100%{opacity:1}}
+  input::placeholder{opacity:0;animation:placeholderFade 12s infinite}
+
+  body{font-family:'Roboto';background:#121212;color:#e0e0e0;margin:20px;max-width:800px}
+  .light{background:#fff;color:#121212}
+  h1,p{text-align:center}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  label{font-weight:500;margin-bottom:4px}
+  input{width:100%;padding:6px;border-radius:4px;border:1px solid #333;background:#1e1e1e;color:#e0e0e0}
+  .light input{background:#fff;color:#121212}
+  button{padding:8px 16px;border:none;border-radius:4px;background:#bb86fc;color:#121212;cursor:pointer}
+  button:hover{background:#9b68ea}
+  .autocomplete-suggestions{position:absolute;background:#1e1e1e;border:1px solid #333;max-height:200px;overflow-y:auto;z-index:10}
+  .suggestion-item{padding:8px;cursor:pointer}
+  .suggestion-item:hover{background:#333}
+  .result-card{background:#1e1e1e;padding:15px;margin-bottom:15px;border-radius:6px}
+  .summary-row{display:flex;gap:10px;align-items:center;border-bottom:1px solid #333;padding-bottom:10px}
+  .primary-field{background:rgba(187,134,252,0.2);padding:5px 10px;border-radius:4px}
+  .detail-row{display:none;padding-top:10px}
+  .price-result{margin-top:5px;font-style:italic;color:#bb86fc;word-wrap:break-word;max-width:300px}
+  .price-spinner{border:3px solid #1e1e1e;border-top:3px solid #bb86fc;border-radius:50%;width:18px;height:18px;animation:spin .7s linear infinite;margin-left:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #results{margin-top:16px}
+  .pagination{display:flex;justify-content:center;gap:8px;margin-top:16px}
+  @media(max-width:600px){input,button{width:100%;box-sizing:border-box}}
+</style>
+</head>
+<body>
+<button onclick="toggleTheme()">Przełącz motyw</button>
+<h1>Interaktywna wyszukiwarka SOR</h1>
+<p>Wpisz fragment i kliknij “Wyszukaj”. Wyniki pojawią się jako karty.</p>
+
+<div class="form-grid">
+  <div class="input-container"><label>Uprawa:</label><input id="uprawaInput"></div>
+  <div class="input-container"><label>Agrofag:</label><input id="agrofagInput"></div>
+  <div class="input-container"><label>Nazwa środka:</label><input id="nazwaInput"></div>
+  <div class="input-container"><label>Substancja czynna:</label><input id="subInput"></div>
+</div>
+<button onclick="wyszukaj()">Wyszukaj</button>
+<div id="results"></div>
+<div class="pagination" id="pagination"></div>
+
+<script>
+const API_BASE="https://sor.onrender.com";
+let cache={},allResults=[],currentPage=1,PAGE_SIZE=20;
+
+function toggleTheme(){document.body.classList.toggle('light')}
+
+function debounce(fn,delay=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),delay)}}
+
+async function fetchDistinct(col){
+  if(cache[col]) return cache[col];
+  const stored=localStorage.getItem(col);
+  if(stored) return cache[col]=JSON.parse(stored);
+  const {distinct_values=[]}=await (await fetch(`${API_BASE}/distinct?col=${col}`)).json();
+  localStorage.setItem(col,JSON.stringify(distinct_values));
+  return cache[col]=distinct_values;
+}
+
+async function initAutocomplete(){
+  const fields=[['uprawaInput','uprawa'],['agrofagInput','agrofag'],['nazwaInput','nazwa'],['subInput','Substancja_czynna']];
+  for(let [id,col] of fields){
+    const inp=document.getElementById(id),wrap=document.createElement('div');wrap.className='autocomplete-suggestions';inp.after(wrap);
+    const vals=await fetchDistinct(col);
+    inp.addEventListener('input',debounce(()=>{
+      wrap.innerHTML='';const q=inp.value.toLowerCase();
+      vals.filter(v=>v.toLowerCase().includes(q))
+          .sort((a,b)=>a.length-b.length)
+          .slice(0,10)
+          .forEach(v=>{let d=document.createElement('div');d.className='suggestion-item';d.textContent=v;
+            d.onclick=()=>{inp.value=v;wrap.innerHTML=''};wrap.appendChild(d)});
+    }));
+  }
+}
+
+async function wyszukaj(){
+  currentPage=1;
+  const params=['uprawa','agrofag','nazwa','Substancja_czynna'].map(col=>{
+    const val=document.getElementById(col+'Input').value.trim();
+    return val?`${col}=${encodeURIComponent(val)}`:null
+  }).filter(Boolean).join('&');
+  const {results=[]}=await (await fetch(`${API_BASE}/search-all${params?'?'+params:''}`)).json();
+  allResults=results;renderPage();
+}
+
+function formatDate(val){
+  const d=new Date(val);return isNaN(d)?val:d.toLocaleDateString('pl-PL');
+}
+
+function renderPage(){
+  const start=(currentPage-1)*PAGE_SIZE,page=allResults.slice(start,start+PAGE_SIZE);
+  document.getElementById('results').innerHTML=page.map(r=>`
+    <div class="result-card">
+      <div class="summary-row">
+        <div class="primary-field">${r.Nazwa||''}</div>
+        <button onclick="toggleDetails(this)">+</button>
+      </div>
+      <div class="detail-row">${Object.entries(r).map(([k,v])=>`<p>${k}: ${formatDate(v)}</p>`).join('')}</div>
+    </div>
+  `).join('');
+  const pages=Math.ceil(allResults.length/PAGE_SIZE);
+  document.getElementById('pagination').innerHTML=Array.from({length:pages},(_,i)=>
+    `<button ${i+1===currentPage?'disabled':''} onclick="goto(${i+1})">${i+1}</button>`
+  ).join('');
+}
+
+function goto(p){currentPage=p;renderPage()}
+function toggleDetails(btn){const det=btn.closest('.result-card').querySelector('.detail-row');btn.textContent=det.style.display==='block'?'+':'-';det.style.display=det.style.display==='block'?'':'block'}
+
+window.onload=initAutocomplete;
+</script>
+</body>
+</html>
