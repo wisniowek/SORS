@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interaktywna wyszukiwarka SOR</title>
+  <title>KRUKOWSKI SOR</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
   <style>
@@ -250,7 +250,6 @@
           div.classList.add("suggestion-item");
           div.textContent = s;
           div.addEventListener("mousedown", function(e) {
-            // Używamy mousedown, aby kliknięcie zadziałało przed zdarzeniem blur
             input.value = s;
             container.innerHTML = "";
           });
@@ -319,7 +318,6 @@
         });
         summary.appendChild(toggleBtn);
         card.appendChild(summary);
-
         // Sekcja szczegółów – pozostałe dane
         const detail = document.createElement("div");
         detail.classList.add("detail-row");
@@ -341,12 +339,12 @@
         priceContainer.appendChild(priceBtn);
         priceContainer.appendChild(priceResult);
         detail.appendChild(priceContainer);
-
         // Obsługa przycisku "Oszacuj cenę"
         priceBtn.addEventListener("click", () => {
-          oszacujCene(rec["Nazwa"], priceResult);
+          // Upewnij się, że pobieramy właściwą nazwę z pola "Nazwa"
+          const effectiveName = rec["Nazwa"] && rec["Nazwa"].trim() ? rec["Nazwa"] : "nieznany środek";
+          oszacujCene(effectiveName, priceResult);
         });
-
         card.appendChild(detail);
         resultsDiv.appendChild(card);
       });
@@ -354,11 +352,15 @@
 
     // Funkcja symulująca wywołanie AI do oszacowania ceny
     function oszacujCene(nazwa, resultDiv) {
+      if (!nazwa || nazwa.trim() === "") {
+        resultDiv.textContent = "Nie znaleziono nazwy środka. Sprawdź dane.";
+        return;
+      }
+      console.log("Oszacowywana nazwa:", nazwa);
       const promptText = `Jaka jest cena środka "${nazwa}" na polskim internecie w różnych opakowaniach? Zwróć średnią dla danych opakowań z rynku polskiego. Jeżeli brak takich informacji, zwróć: skontaktuj się z lokalnym dystrybutorem SOR.`;
-      // Symulujemy opóźnienie zapytania do AI
+      console.log("Prompt dla AI:", promptText);
       resultDiv.textContent = "Oszacowywanie ceny...";
       setTimeout(() => {
-        // Symulacja: losowo decydujemy czy są dostępne dane
         if (Math.random() > 0.5) {
           let price = (Math.random() * 150 + 50).toFixed(2);
           resultDiv.textContent = `Średnia cena: ${price} PLN`;
