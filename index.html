@@ -7,35 +7,75 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
   <style>
     body::before, body::after {
-      content: ""; position: fixed; top:0; left:0; right:0; bottom:0;
-      background-size:cover; background-position:center; z-index:-2; opacity:0;
-      animation:bgFade 30s infinite;
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: -2;
+      opacity: 0;
+      animation: bgFade 30s infinite;
     }
-    body::before { background-image:url('https://example.com/apple_orchard.gif'); animation-delay:0s; }
-    body::after  { background-image:url('https://example.com/grain_field.gif'); animation-delay:15s; }
+    body::before { background-image: url('https://example.com/apple_orchard.gif'); animation-delay: 0s; }
+    body::after  { background-image: url('https://example.com/grain_field.gif'); animation-delay: 15s; }
     @keyframes bgFade { 0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1} }
 
-    body { font-family:'Roboto'; background:#121212; color:#e0e0e0; margin:20px; max-width:800px; }
-    h1,p { text-align:center }
-    .input-container { position:relative; margin-bottom:20px }
-    label { display:block; margin-top:15px; font-weight:500 }
-    input { width:100%; max-width:300px; padding:8px; border:1px solid #333; border-radius:4px; background:#1e1e1e; color:#e0e0e0 }
-    input:focus { border-color:#bb86fc; outline:none }
-    button { padding:10px 20px; margin-top:20px; border:none; border-radius:4px; background:#bb86fc; color:#121212; cursor:pointer }
-    button:hover { background:#9b68ea }
-    .autocomplete-suggestions { position:absolute; top:100%; left:0; right:0; background:#1e1e1e; border:1px solid #333; max-height:200px; overflow-y:auto; z-index:10 }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      margin: 20px;
+      max-width: 800px;
+    }
+    h1, p { text-align: center }
+    .input-container { position: relative; margin-bottom: 20px }
+    label { display: block; margin-top: 15px; font-weight: 500 }
+    input {
+      width: 100%; max-width: 300px;
+      padding: 8px; margin-top: 5px;
+      border: 1px solid #333; border-radius: 4px;
+      background-color: #1e1e1e; color: #e0e0e0;
+    }
+    input:focus { border-color: #bb86fc; outline: none }
+    button {
+      padding: 10px 20px; margin-top: 20px;
+      border: none; border-radius: 4px;
+      background-color: #bb86fc; color: #121212;
+      cursor: pointer;
+    }
+    button:hover { background-color: #9b68ea }
+    .autocomplete-suggestions {
+      position: absolute; top:100%; left:0; right:0;
+      background-color:#1e1e1e; border:1px solid #333;
+      max-height:200px; overflow-y:auto; z-index:10;
+    }
     .suggestion-item { padding:8px; cursor:pointer }
-    .suggestion-item:hover { background:#333 }
+    .suggestion-item:hover { background-color:#333 }
 
-    .result-card { background:#1e1e1e; padding:15px; margin-bottom:15px; border-radius:6px; }
-    .summary-row { display:flex; flex-wrap:wrap; gap:10px; border-bottom:1px solid #333; padding-bottom:10px }
-    .primary-field { background:rgba(187,134,252,0.2); padding:5px 10px; border-radius:4px }
+    .result-card {
+      background-color:#1e1e1e; padding:15px;
+      margin-bottom:15px; border-radius:6px;
+    }
+    .summary-row {
+      display:flex; flex-wrap:wrap; gap:10px;
+      border-bottom:1px solid #333; padding-bottom:10px;
+    }
+    .primary-field {
+      background:rgba(187,134,252,0.2);
+      padding:5px 10px; border-radius:4px;
+    }
     .detail-row { display:none; padding-top:10px }
     .price-container { margin-top:10px }
-    .price-result { margin-top:5px; font-style:italic; color:#bb86fc; word-wrap:break-word; max-width:300px }
-    .price-spinner { border:3px solid #1e1e1e; border-top:3px solid #bb86fc; border-radius:50%; width:18px; height:18px; animation:spin .7s linear infinite; margin-left:8px }
+    .price-result {
+      margin-top:5px; font-style:italic; color:#bb86fc;
+      word-wrap:break-word; max-width:300px;
+    }
+    .price-spinner {
+      border:3px solid #1e1e1e; border-top:3px solid #bb86fc;
+      border-radius:50%; width:18px; height:18px;
+      animation:spin .7s linear infinite; margin-left:8px;
+    }
     @keyframes spin { to { transform:rotate(360deg) } }
-
     @media(max-width:600px){ input,button{width:100%;box-sizing:border-box} }
   </style>
 </head>
@@ -45,19 +85,23 @@
 
   <div class="input-container">
     <label for="uprawaInput">Uprawa:</label>
-    <input id="uprawaInput" placeholder="np. ziemniak"><div id="uprawaSuggestions" class="autocomplete-suggestions"></div>
+    <input id="uprawaInput" placeholder="np. ziemniak">
+    <div id="uprawaSuggestions" class="autocomplete-suggestions"></div>
   </div>
   <div class="input-container">
     <label for="agrofagInput">Agrofag:</label>
-    <input id="agrofagInput" placeholder="np. stonka ziemniaczana"><div id="agrofagSuggestions" class="autocomplete-suggestions"></div>
+    <input id="agrofagInput" placeholder="np. stonka ziemniaczana">
+    <div id="agrofagSuggestions" class="autocomplete-suggestions"></div>
   </div>
   <div class="input-container">
     <label for="nazwaInput">Nazwa środka:</label>
-    <input id="nazwaInput" placeholder="np. Aceplan"><div id="nazwaSuggestions" class="autocomplete-suggestions"></div>
+    <input id="nazwaInput" placeholder="np. Aceplan">
+    <div id="nazwaSuggestions" class="autocomplete-suggestions"></div>
   </div>
   <div class="input-container">
     <label for="subInput">Substancja czynna:</label>
-    <input id="subInput" placeholder="np. acetamipryd"><div id="subSuggestions" class="autocomplete-suggestions"></div>
+    <input id="subInput" placeholder="np. acetamipryd">
+    <div id="subSuggestions" class="autocomplete-suggestions"></div>
   </div>
 
   <button onclick="wyszukaj()">Wyszukaj</button>
@@ -67,63 +111,92 @@
     const API_BASE = "https://sor.onrender.com";
     let uprawaValues=[], agrofagValues=[], nazwaValues=[], subValues=[];
 
-    window.addEventListener('DOMContentLoaded', async ()=>{
+    window.addEventListener('DOMContentLoaded', async()=>{
       const cols=["uprawa","agrofag","nazwa","Substancja_czynna"];
       const arrs=[uprawaValues,agrofagValues,nazwaValues,subValues];
       await Promise.all(cols.map((col,i)=>fetch(`${API_BASE}/distinct?col=${col}`)
         .then(r=>r.json()).then(j=>arrs[i].push(...(j.distinct_values||[])))));
-      [ ["uprawaInput","uprawaSuggestions",uprawaValues],
-        ["agrofagInput","agrofagSuggestions",agrofagValues],
-        ["nazwaInput","nazwaSuggestions",nazwaValues],
-        ["subInput","subSuggestions",subValues] ]
+      [["uprawaInput","uprawaSuggestions",uprawaValues],
+       ["agrofagInput","agrofagSuggestions",agrofagValues],
+       ["nazwaInput","nazwaSuggestions",nazwaValues],
+       ["subInput","subSuggestions",subValues]]
         .forEach(([i,s,v])=>setupAutocomplete(document.getElementById(i),document.getElementById(s),v));
     });
 
     function setupAutocomplete(input, container, suggestions){
-      input.addEventListener("input",()=>{ container.innerHTML=""; const val=input.value.toLowerCase();
-        if(!val) return; suggestions.filter(s=>s.toLowerCase().includes(val))
+      input.addEventListener("input",()=>{
+        container.innerHTML="";
+        const val=input.value.toLowerCase();
+        if(!val) return;
+        suggestions.filter(s=>s.toLowerCase().includes(val))
           .forEach(s=>{const d=document.createElement("div");d.className="suggestion-item";d.textContent=s;
-            d.addEventListener("mousedown",()=>{input.value=s;container.innerHTML=""});container.appendChild(d)});
+            d.addEventListener("mousedown",()=>{input.value=s;container.innerHTML=""});
+            container.appendChild(d)});
       });
       input.addEventListener("blur",()=>setTimeout(()=>container.innerHTML="",150));
     }
 
     async function wyszukaj(){
-      const params=["uprawa","agrofag","nazwa","Substancja_czynna"].map(id=>`${id}=${encodeURIComponent(document.getElementById(id+"Input").value)}`).filter(p=>!p.endsWith("="));
+      const up=document.getElementById("uprawaInput").value.trim();
+      const ag=document.getElementById("agrofagInput").value.trim();
+      const na=document.getElementById("nazwaInput").value.trim();
+      const su=document.getElementById("subInput").value.trim();
+      const params=[];
+      if(up) params.push(`uprawa=${encodeURIComponent(up)}`);
+      if(ag) params.push(`agrofag=${encodeURIComponent(ag)}`);
+      if(na) params.push(`nazwa=${encodeURIComponent(na)}`);
+      if(su) params.push(`Substancja_czynna=${encodeURIComponent(su)}`);
       const url=`${API_BASE}/search-all${params.length?`?${params.join("&")}`:""}`;
-      const res=await fetch(url), json=await res.json();
-      displayResults(json);
+      try{
+        const res=await fetch(url), data=await res.json();
+        displayResults(data);
+      }catch(e){
+        document.getElementById("results").innerHTML="<p>Błąd podczas wyszukiwania.</p>";
+        console.error(e);
+      }
     }
 
     function displayResults({results=[]}){
-      const container=document.getElementById("results"); container.innerHTML="";
-      if(!results.length) return container.innerHTML="<p>Brak wyników (0)</p>";
+      const out=document.getElementById("results"); out.innerHTML="";
+      if(!results.length) return out.innerHTML="<p>Brak wyników (0)</p>";
       results.forEach(rec=>{
         const card=document.createElement("div");card.className="result-card";
         const summary=document.createElement("div");summary.className="summary-row";
-        ["Nazwa","Rodzaj","Agrofag","Uprawa"].forEach(f=>{const el=document.createElement("div");el.className="primary-field";el.textContent=rec[f]||"";summary.appendChild(el)});
-        const toggle=document.createElement("button");toggle.textContent="+";summary.appendChild(toggle);card.appendChild(summary);
-        const detail=document.createElement("div");detail.className="detail-row";toggle.onclick=()=>{detail.style.display=detail.style.display==="block"?"":"block";toggle.textContent=detail.style.display==="block"?"-":"+"};
-        Object.entries(rec).filter(([k])=>!["Nazwa","Rodzaj","Agrofag","Uprawa"].includes(k)).forEach(([k,v])=>{const p=document.createElement("p");p.textContent=`${k}: ${v}`;detail.appendChild(p)});
+        ["Nazwa","Rodzaj","Agrofag","Uprawa"].forEach(f=>{
+          const el=document.createElement("div");el.className="primary-field";el.textContent=rec[f]||"";summary.appendChild(el)});
+        const toggle=document.createElement("button");toggle.textContent="+";summary.appendChild(toggle);
+        card.appendChild(summary);
+
+        const detail=document.createElement("div");detail.className="detail-row";
+        toggle.onclick=()=>{detail.style.display=detail.style.display==="block"?"":"block";toggle.textContent=detail.style.display==="block"?"-":"+"};
+        Object.entries(rec).filter(([k])=>!["Nazwa","Rodzaj","Agrofag","Uprawa"].includes(k))
+          .forEach(([k,v])=>{const p=document.createElement("p");p.textContent=`${k}: ${v}`;detail.appendChild(p)});
         const priceContainer=document.createElement("div");priceContainer.className="price-container";
         const priceBtn=document.createElement("button");priceBtn.textContent="Oszacuj cenę";
         const priceResult=document.createElement("div");priceResult.className="price-result";
         priceBtn.onclick=()=>oszacujCene(rec["Nazwa"]||"", priceResult, priceBtn);
-        priceContainer.append(priceBtn, priceResult);detail.appendChild(priceContainer);card.appendChild(detail);
-        container.appendChild(card);
+        priceContainer.append(priceBtn, priceResult);detail.appendChild(priceContainer);
+        card.appendChild(detail); out.appendChild(card);
       });
     }
 
     async function oszacujCene(nazwa, resultDiv, btn){
-      if(!nazwa){resultDiv.textContent="Brak nazwy środka.";return}
+      if(!nazwa){ resultDiv.textContent="Brak nazwy środka."; return; }
       btn.disabled=true; resultDiv.textContent="";
       const spinner=document.createElement("span");spinner.className="price-spinner";btn.parentElement.appendChild(spinner);
       try{
-        const res=await fetch(`${API_BASE}/estimate-price`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:`Średnia cena środka "${nazwa}" w Polsce w PLN dla dostępnych opakowań. Jeśli brak danych, odpowiedz "skontaktuj się z dystrybutorem".`})});
+        const res=await fetch(`${API_BASE}/estimate-price`,{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({ prompt:`Średnia cena środka "${nazwa}" w Polsce w PLN dla dostępnych opakowań. Jeśli brak danych, odpowiedz "skontaktuj się z dystrybutorem".` })
+        });
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const {price_estimate} = await res.json(); resultDiv.textContent = price_estimate;
-      } catch(e){console.error(e); resultDiv.textContent="Błąd połączenia — spróbuj ponownie.";}
-      finally{btn.disabled=false; spinner.remove();}
+        const { price_estimate } = await res.json(); resultDiv.textContent = price_estimate;
+      } catch(e){
+        console.error(e); resultDiv.textContent="Błąd połączenia — spróbuj ponownie.";
+      } finally{
+        btn.disabled=false; spinner.remove();
+      }
     }
   </script>
 </body>
