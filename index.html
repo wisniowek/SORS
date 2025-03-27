@@ -28,9 +28,10 @@
       max-width: 800px;
       padding: 10px;
     }
+    /* Wyśrodkowanie tylko nagłówków i akapitu powitalnego */
     h1, p { text-align: center; margin: 10px 0; }
     
-    /* Układ pól wyszukiwania: dwa rzędy bez dodatkowych kresek */
+    /* Układ pól wyszukiwania: dwa rzędy, bez linii między nimi */
     .input-row {
       display: flex;
       flex-wrap: wrap;
@@ -57,7 +58,10 @@
       background-color: #1e1e1e;
       color: #e0e0e0;
     }
-    input:focus { border-color: #bb86fc; outline: none; }
+    input:focus {
+      border-color: #bb86fc;
+      outline: none;
+    }
     button {
       padding: 10px 20px;
       margin-top: 20px;
@@ -67,7 +71,9 @@
       color: #121212;
       cursor: pointer;
     }
-    button:hover { background-color: #9b68ea; }
+    button:hover {
+      background-color: #9b68ea;
+    }
     .autocomplete-suggestions {
       position: absolute;
       top: 100%;
@@ -83,19 +89,25 @@
       padding: 8px;
       cursor: pointer;
     }
-    .suggestion-item:hover { background-color: #333; }
+    .suggestion-item:hover {
+      background-color: #333;
+    }
 
+    /* Karta wyniku: wyrównanie do lewej */
     .result-card {
       background-color: #1e1e1e;
       padding: 15px;
       margin-bottom: 15px;
       border-radius: 6px;
+      text-align: left; /* Cała karta wyrównana do lewej */
     }
     .summary-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+      /* Wymuszenie lewej (gdyby rodzic miał text-align:center) */
+      text-align: left !important;
     }
     .primary-field {
       background: rgba(187,134,252,0.2);
@@ -111,7 +123,7 @@
     .detail-row {
       display: none;
       padding-top: 10px;
-      text-align: left;
+      text-align: left !important; /* Wymuszenie wyrównania do lewej */
     }
     .detail-row p {
       margin: 4px 0;
@@ -139,10 +151,18 @@
       animation: spin .7s linear infinite;
       margin-left: 8px;
     }
-    @keyframes spin { to { transform: rotate(360deg) } }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     @media (max-width:600px) {
-      input, button { width: 100%; box-sizing: border-box; }
-      .input-row { flex-direction: column; align-items: center; }
+      input, button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .input-row {
+        flex-direction: column;
+        align-items: center;
+      }
     }
   </style>
 </head>
@@ -177,11 +197,9 @@
     </div>
   </div>
 
-  <!-- Przycisk "Wyszukaj" -->
   <div style="text-align:center;">
     <button onclick="wyszukaj()">Wyszukaj</button>
   </div>
-  
   <div id="results"></div>
 
   <script>
@@ -252,7 +270,10 @@
     function displayResults({ results = [] }) {
       const out = document.getElementById("results");
       out.innerHTML = "";
-      if (!results.length) return out.innerHTML = "<p>Brak wyników (0)</p>";
+      if (!results.length) {
+        out.innerHTML = "<p>Brak wyników (0)</p>";
+        return;
+      }
       results.forEach(rec => {
         const card = document.createElement("div");
         card.className = "result-card";
@@ -262,7 +283,11 @@
         ["Nazwa", "Rodzaj", "Agrofag", "Uprawa"].forEach(f => {
           const el = document.createElement("div");
           el.className = "primary-field";
-          el.textContent = rec[f] ? String(rec[f]).replace(/_x000D_/g, ' ').replace(/T00:00:00/, '') : "";
+          el.textContent = rec[f]
+            ? String(rec[f])
+                .replace(/_x000D_/g, ' ')
+                .replace(/T00:00:00/, '')
+            : "";
           summary.appendChild(el);
         });
         const toggle = document.createElement("button");
@@ -281,9 +306,14 @@
             toggle.textContent = "-";
           }
         };
-        Object.entries(rec).filter(([k]) => !["Nazwa", "Rodzaj", "Agrofag", "Uprawa"].includes(k))
+
+        // Pozostałe pola: klucz pogrubiony, wartość zwykła
+        Object.entries(rec)
+          .filter(([k]) => !["Nazwa", "Rodzaj", "Agrofag", "Uprawa"].includes(k))
           .forEach(([k, v]) => {
-            let val = String(v).replace(/_x000D_/g, ' ').replace(/T00:00:00/, '');
+            let val = String(v)
+              .replace(/_x000D_/g, ' ')
+              .replace(/T00:00:00/, '');
             const p = document.createElement("p");
             const keySpan = document.createElement("span");
             keySpan.style.fontWeight = "bold";
@@ -294,6 +324,8 @@
             p.appendChild(valueSpan);
             detail.appendChild(p);
           });
+
+        // Sekcja "Oszacuj cenę" + "Wyczyść"
         const priceContainer = document.createElement("div");
         priceContainer.className = "price-container";
         const priceBtn = document.createElement("button");
@@ -315,7 +347,10 @@
     }
 
     async function oszacujCene(nazwa, resultDiv, btn) {
-      if (!nazwa) { resultDiv.textContent = "Brak nazwy środka."; return; }
+      if (!nazwa) {
+        resultDiv.textContent = "Brak nazwy środka.";
+        return;
+      }
       btn.disabled = true;
       resultDiv.textContent = "";
       const spinner = document.createElement("span");
@@ -325,7 +360,9 @@
         const res = await fetch(`${API_BASE}/estimate-price`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: `Średnia cena środka "${nazwa}" w Polsce w PLN dla dostępnych opakowań. Jeśli brak danych, odpowiedz "skontaktuj się z dystrybutorem".` })
+          body: JSON.stringify({
+            prompt: `Średnia cena środka "${nazwa}" w Polsce w PLN dla dostępnych opakowań. Jeśli brak danych, odpowiedz "skontaktuj się z dystrybutorem".`
+          })
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const { price_estimate } = await res.json();
